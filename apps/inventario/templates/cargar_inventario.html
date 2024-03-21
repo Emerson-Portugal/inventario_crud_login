@@ -1,0 +1,17 @@
+{% extends "./base.html" %}
+
+{% block title %} Cargar Archivo {% endblock %}
+
+{% block body %}
+<div class="container mt-5">
+    <h1 class="mb-4">Cargar Archivo Excel</h1>
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label for="archivo_excel">Seleccionar archivo Excel</label>
+            <input type="file" class="form-control" id="archivo_excel" name="archivo_excel" accept=".xlsx">
+        </div>
+        <button type="submit" class="btn btn-primary mt-3" disabled>Cargar</button>
+    </form>
+</div>
+{% endblock %}

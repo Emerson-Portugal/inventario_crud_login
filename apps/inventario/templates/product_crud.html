@@ -1,0 +1,179 @@
+{% extends "./base.html" %} {% block title %}Gestión de Productos{% endblock %}
+{% block body %}
+<div class="row">
+    <div class="col-sm-12 col-md-6 col-lg-4 col-xl-4">
+        {% if messages %} {% for message in messages %}
+        <div class="alert alert-dismissible alert-success">
+            <button type="button" class="close" data-dismiss="alert">&times;</button>
+            <strong class="text-dark">{{ message }}</strong>
+        </div>
+        {% endfor %} {% endif %}
+        <h2>Gestión de Productos</h2>
+
+        <div class="card">
+            <div class="card-body">
+                <form id="searchForm" method="GET">
+                    <div class="form-group">
+                        <input type="text" id="txtNombre" class="form-control" placeholder="Buscar por nombre"
+                            maxlength="50" name="nombre" />
+                    </div>
+                    <button type="submit" class="btn btn-primary">Buscar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-sm-12 col-md-6 col-lg-8 col-xl-8">
+        <h1>Listado de Productos</h1>
+        <div class="table-responsive py-2">
+            <table class="table table-striped" id="tablaProductos">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Código</th>
+                        <th>Nombre</th>
+                        <th>Cantidad</th>
+                        <th>Opciones</th>
+                    </tr>
+                </thead>
+                <tbody id="productosBody">
+                    <!-- Los resultados de búsqueda se mostrarán aquí -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Botón para registrar producto -->
+<button id="registrarProductoBtn" data-url="{% url 'inventario:registrarProducto' %}" style="display: none"></button>
+
+<script>
+    document.getElementById('registrarProductoBtn').addEventListener('click', function () {
+        var url = this.getAttribute('data-url');
+        var codigo = document.getElementById('codigo').value;
+        var nombre = document.getElementById('nombre').value;
+        var cantidad = document.getElementById('cantidad').value;
+
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({
+                codigo: codigo,
+                nombre: nombre,
+                cantidad: cantidad
+            })
+        })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                if (data.success) {
+                    window.location.href = '{% url 'inventario:product_crud' %}';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+    });
+
+    function agregarProducto(codigo, nombre, cantidad) {
+        var url = document.getElementById('registrarProductoBtn').getAttribute('data-url');
+
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({
+                codigo: codigo,
+                nombre: nombre,
+                cantidad: cantidad
+            })
+        })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                if (data.success) {
+                    window.location.href = '{% url 'inventario:product_crud' %}';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+    }
+
+
+
+
+    function crearFilaProducto(producto, index) {
+        var row = document.createElement('tr');
+        row.innerHTML = '<td>' + (index + 1) + '</td>' +
+            '<td>' + producto.codigo + '</td>' +
+            '<td>' + producto.nombre + '</td>' +
+            '<td>' + producto.stock_actual + '</td>' +
+            '<td>' +
+            '<input type="text" class="form-control" id="codigo_' + index + '" value="' + producto.codigo + '">' +
+            '<input type="text" class="form-control" id="nombre_' + index + '" value="' + producto.nombre + '">' +
+            '<input type="number" class="form-control" id="cantidad_' + index + '" value="1">' +
+            '<button class="agregarProductoBtn btn btn-primary" data-index="' + index + '">Agregar Producto</button>' +
+            '</td>';
+        return row;
+    }
+
+
+    function manejarRespuesta(data) {
+        var tbody = document.getElementById('productosBody');
+        tbody.innerHTML = '';
+
+        if (data && data.length > 0) {
+            var fragment = document.createDocumentFragment();
+            data.forEach(function (producto, index) {
+                var row = crearFilaProducto(producto, index);
+                fragment.appendChild(row);
+            });
+            tbody.appendChild(fragment);
+
+            // Agregar evento de clic a los botones "Agregar Producto"
+            var agregarBotones = document.querySelectorAll('.agregarProductoBtn');
+            agregarBotones.forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    var index = this.getAttribute('data-index');
+                    var codigo = document.getElementById('codigo_' + index).value;
+                    var nombre = document.getElementById('nombre_' + index).value;
+                    var cantidad = document.getElementById('cantidad_' + index).value;
+                    agregarProducto(codigo, nombre, cantidad);
+                });
+            });
+        } else {
+            tbody.innerHTML = '<tr><td colspan="5">No se encontraron coincidencias.</td></tr>';
+        }
+    }
+
+
+    document.addEventListener('click', function (event) {
+        if (event.target.classList.contains('agregarProductoBtn')) {
+            var codigo = event.target.getAttribute('data-codigo');
+            var nombre = event.target.getAttribute('data-nombre');
+            agregarProducto(codigo, nombre);
+        }
+    });
+
+    document.getElementById('searchForm').addEventListener('submit', function (event) {
+        event.preventDefault();
+
+        var form = event.target;
+        var nombre = form.querySelector('#txtNombre').value.trim();
+        var url = '{% url 'inventario:buscarProducto' %}?nombre=' + encodeURIComponent(nombre);
+
+        fetch(url)
+            .then(response => response.json())
+            .then(manejarRespuesta)
+            .catch(error => {
+                console.error('Error:', error);
+            });
+    });
+</script>
+{% endblock %}
